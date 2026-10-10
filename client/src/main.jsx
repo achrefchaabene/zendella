@@ -25,6 +25,7 @@ import "./admin.css";
 import "./brand.css";
 import "./recovery.css";
 import "./password.css";
+import "./admin-redesign.css";
 
 const API = "/api";
 const fallback = [];
@@ -634,129 +635,49 @@ function Success({ order, go }) {
 }
 function AdminTools({ token }) {
   const [categories, setCategories] = useState([]),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [colors, setColors] = useState(["#E7D8C5"]),
+    [promotion, setPromotion] = useState(false),
+    [price, setPrice] = useState(""),
+    [comparePrice, setComparePrice] = useState("");
   const headers = { Authorization: `Bearer ${token}` };
-  useEffect(() => {
-    fetch(`${API}/categories`)
-      .then((r) => r.json())
-      .then(setCategories);
-  }, []);
+  const palette = ["#111827", "#FFFFFF", "#D9C4A7", "#A26349", "#A9B7A1", "#506C7C", "#DAA1A8", "#D9B649"];
+  const reduction = price && comparePrice && +comparePrice > +price ? Math.round((1 - +price / +comparePrice) * 100) : 0;
+  useEffect(() => { fetch(`${API}/categories`).then((r) => r.json()).then(setCategories).catch(() => {}); }, []);
+  const toggleColor = (color) => setColors((list) => list.includes(color) ? list.filter((value) => value !== color) : [...list, color]);
   async function addCategory(e) {
-    e.preventDefault();
+    e.preventDefault(); setNotice("");
     let name = new FormData(e.currentTarget).get("name");
-    let r = await fetch(`${API}/admin/categories`, {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    if (r.ok) {
-      let c = await r.json();
-      setCategories((a) => [...a, c]);
-      e.currentTarget.reset();
-      setNotice("Catégorie créée.");
-    } else setNotice("Impossible de créer cette catégorie.");
+    let r = await fetch(`${API}/admin/categories`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+    if (r.ok) { let c = await r.json(); setCategories((items) => [...items, c]); e.currentTarget.reset(); setNotice("Catégorie créée avec succès."); }
+    else setNotice("Impossible de créer cette catégorie.");
   }
   async function addProduct(e) {
-    e.preventDefault();
+    e.preventDefault(); setNotice("");
     let form = new FormData(e.currentTarget);
-    form.set(
-      "colors",
-      JSON.stringify(
-        (form.get("colors") || "")
-          .split(",")
-          .map((x) => x.trim())
-          .filter(Boolean),
-      ),
-    );
+    form.set("colors", JSON.stringify(colors));
     form.set("featured", form.get("featured") ? "true" : "false");
-    let r = await fetch(`${API}/admin/products`, {
-      method: "POST",
-      headers,
-      body: form,
-    });
-    if (r.ok) {
-      e.currentTarget.reset();
-      setNotice(
-        "Produit ajouté avec succès. Actualisez la page boutique pour le voir.",
-      );
-    } else {
-      let d = await r.json().catch(() => ({}));
-      setNotice(d.message || "Impossible d’ajouter le produit.");
-    }
+    if (!promotion) form.delete("compareAtPrice");
+    let r = await fetch(`${API}/admin/products`, { method: "POST", headers, body: form });
+    if (r.ok) { e.currentTarget.reset(); setColors(["#E7D8C5"]); setPromotion(false); setPrice(""); setComparePrice(""); setNotice("Produit publié avec succès. Il est visible dans la boutique."); }
+    else { let d = await r.json().catch(() => ({})); setNotice(d.message || "Impossible d’ajouter le produit."); }
   }
-  return (
-    <section className="admin-products">
-      <div>
-        <p className="eyebrow">CATÉGORIES & PRODUITS</p>
-        <h2>Ajouter au catalogue</h2>
-      </div>
-      <div className="admin-forms">
-        <form onSubmit={addCategory}>
-          <h3>Nouvelle catégorie</h3>
-          <input name="name" required placeholder="Ex. Décoration" />
-          <button className="primary">Créer</button>
-        </form>
-        <form onSubmit={addProduct} encType="multipart/form-data">
-          <h3>Nouveau produit</h3>
-          <div className="admin-two">
-            <input required name="name" placeholder="Nom du produit" />
-            <select required name="category" defaultValue="">
-              <option value="" disabled>
-                Catégorie
-              </option>
-              {categories.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <textarea name="description" placeholder="Description du produit" />
-          <div className="admin-two">
-            <input
-              required
-              min="0"
-              step="0.001"
-              type="number"
-              name="price"
-              placeholder="Prix (TND)"
-            />
-            <input
-              required
-              min="0"
-              type="number"
-              name="stock"
-              placeholder="Stock"
-            />
-          </div>
-          <input
-            min="0"
-            step="0.001"
-            type="number"
-            name="compareAtPrice"
-            placeholder="Ancien prix / promotion (facultatif)"
-          />
-          <input name="colors" placeholder="Couleurs : beige, blanc, noir" />
-          <label className="file-label">
-            Photos du produit
-            <input
-              required
-              name="images"
-              type="file"
-              accept="image/*"
-              multiple
-            />
-          </label>
-          <label className="check">
-            <input type="checkbox" name="featured" /> Mettre en avant sur
-            l’accueil
-          </label>
-          <button className="primary">Publier le produit</button>
-        </form>
-      </div>
-      {notice && <p className="notice">{notice}</p>}
-    </section>
-  );
+  return <section className="admin-products refined-admin">
+    <div className="admin-section-heading"><div><p className="eyebrow">CATALOGUE ZENDALA</p><h2>Créer un nouveau produit</h2><p>Ajoutez une pièce, définissez le stock et publiez-la instantanément.</p></div><span className="admin-badge">Espace marchand</span></div>
+    <div className="admin-forms refined-forms">
+      <form className="category-card" onSubmit={addCategory}><p className="form-kicker">ORGANISATION</p><h3>Nouvelle catégorie</h3><p>Créez vos univers de vente avant d’ajouter les produits.</p><input name="name" required placeholder="Ex. Décoration"/><button className="secondary-btn">Ajouter la catégorie</button></form>
+      <form className="product-form" onSubmit={addProduct} encType="multipart/form-data">
+        <div className="form-title"><div><p className="form-kicker">FICHE PRODUIT</p><h3>Informations essentielles</h3></div><label className="featured-toggle"><input type="checkbox" name="featured"/><span></span> À la une</label></div>
+        <div className="admin-two"><label>Nom du produit<input required name="name" placeholder="Ex. Bougie Ambre"/></label><label>Catégorie<select required name="category" defaultValue=""><option value="" disabled>Choisir une catégorie</option>{categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}</select></label></div>
+        <label>Description<textarea name="description" placeholder="Décrivez les matières, dimensions, usage et conseils…"/></label>
+        <div className="admin-two"><label>Prix de vente (TND)<input required min="0" step="0.001" type="number" name="price" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.000"/></label><label>Quantité en stock<input required min="0" type="number" name="stock" placeholder="0"/></label></div>
+        <section className="promotion-box"><div><p className="form-kicker">PROMOTION</p><h4>Mettre ce produit en promotion</h4><p>Affichez un ancien prix barré et une réduction visible dans la boutique.</p></div><button type="button" className={promotion ? "switch on" : "switch"} onClick={() => setPromotion((value) => !value)} aria-label="Activer la promotion"><span/></button>{promotion && <label className="promo-price">Prix initial (TND)<input required min="0" step="0.001" type="number" name="compareAtPrice" value={comparePrice} onChange={(e) => setComparePrice(e.target.value)} placeholder="0.000"/>{reduction > 0 && <b>−{reduction}%</b>}</label>}</section>
+        <section className="color-box"><div><p className="form-kicker">COULEURS DISPONIBLES</p><h4>Palette du produit</h4><p>Sélectionnez une ou plusieurs couleurs.</p></div><div className="swatches">{palette.map((color) => <button type="button" key={color} title={color} onClick={() => toggleColor(color)} className={colors.includes(color) ? "swatch selected" : "swatch"} style={{ backgroundColor: color }}/>) }<label className="custom-color" title="Couleur personnalisée"><input type="color" value={colors[colors.length - 1] || "#E7D8C5"} onChange={(e) => !colors.includes(e.target.value) && setColors((list) => [...list, e.target.value])}/><Plus size={14}/></label></div><div className="selected-colors">{colors.map((color) => <span key={color}><i style={{ backgroundColor: color }}/>{color}<button type="button" onClick={() => toggleColor(color)} aria-label={`Retirer ${color}`}>×</button></span>)}</div></section>
+        <label className="upload-zone"> <b>Photos du produit</b><span>Glissez vos images ici ou sélectionnez jusqu’à 5 photos (JPG, PNG, WEBP).</span><input required name="images" type="file" accept="image/*" multiple/></label>
+        <button className="primary publish-btn">Publier le produit <ArrowRight size={18}/></button>
+      </form>
+    </div>{notice && <p className="notice">{notice}</p>}
+  </section>;
 }
 function Admin({ products }) {
   let [token, setToken] = useState(
