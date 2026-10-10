@@ -37,6 +37,17 @@ const money = (n) =>
     minimumFractionDigits: 3,
     maximumFractionDigits: 3,
   }).format(n || 0);
+const colourName = (colour) =>
+  ({
+    "#111827": "Noir",
+    "#FFFFFF": "Blanc",
+    "#D9C4A7": "Beige",
+    "#A26349": "Terracotta",
+    "#A9B7A1": "Vert sauge",
+    "#506C7C": "Bleu ardoise",
+    "#DAA1A8": "Rose poudré",
+    "#D9B649": "Ocre",
+  })[colour?.toUpperCase()] || "Couleur sélectionnée";
 function App() {
   const [products, setProducts] = useState(fallback),
     [categories, setCategories] = useState([]),
@@ -69,8 +80,10 @@ function App() {
     () => localStorage.setItem("zendella-cart", JSON.stringify(cart)),
     [cart],
   );
-  const add = (p) => {
-    const quantityInCart = cart.find((x) => x._id === p._id)?.qty || 0;
+  const add = (p, colour = p.colors?.[0] || "") => {
+    const quantityInCart = cart
+      .filter((x) => x._id === p._id)
+      .reduce((sum, x) => sum + x.qty, 0);
     if (quantityInCart >= p.stock) {
       setCartNotice(
         p.stock > 0
@@ -81,10 +94,12 @@ function App() {
       return;
     }
     setCart((a) => {
-      let found = a.find((x) => x._id === p._id);
+      let found = a.find((x) => x._id === p._id && x.colour === colour);
       return found
-        ? a.map((x) => (x._id === p._id ? { ...x, qty: x.qty + 1 } : x))
-        : [...a, { ...p, qty: 1 }];
+        ? a.map((x) =>
+            x._id === p._id && x.colour === colour ? { ...x, qty: x.qty + 1 } : x,
+          )
+        : [...a, { ...p, colour, qty: 1 }];
     });
     setCartNotice("");
     setDrawer(true);
@@ -99,16 +114,22 @@ function App() {
     setCartNotice("");
     setCart((a) =>
       a.flatMap((x) =>
-        x._id === item._id ? (n > 0 ? [{ ...x, qty: n }] : []) : [x],
+        x._id === item._id && x.colour === item.colour
+          ? n > 0
+            ? [{ ...x, qty: n }]
+            : []
+          : [x],
       ),
     );
   };
   const confirmStock = (items) => {
     setProducts((current) =>
       current.map((product) => {
-        const ordered = items.find((item) => item.product === product._id);
+        const ordered = items
+          .filter((item) => item.product === product._id)
+          .reduce((sum, item) => sum + item.quantity, 0);
         return ordered
-          ? { ...product, stock: Math.max(0, product.stock - ordered.quantity) }
+          ? { ...product, stock: Math.max(0, product.stock - ordered) }
           : product;
       }),
     );
@@ -451,7 +472,7 @@ function ProductModal({ p, close, add }) {
             className="primary full"
             disabled={!p.stock}
             onClick={() => {
-              add(p);
+              add(p, colour);
               close();
             }}
           >
@@ -492,6 +513,12 @@ function Cart({ drawer, close, cart, total, change, go, notice }) {
                   <img src={x.images?.[0]?.url} alt="" />
                   <div>
                     <h3>{x.name}</h3>
+                    {x.colour && (
+                      <span className="cart-colour">
+                        <i style={{ backgroundColor: x.colour }} />
+                        {colourName(x.colour)}
+                      </span>
+                    )}
                     <p>{money(x.price)}</p>
                     <div className="stepper">
                       <button onClick={() => change(x, x.qty - 1)}>
@@ -558,6 +585,7 @@ function Checkout({ cart, total, setOrder, go, clear, confirmStock }) {
       items: cart.map((x) => ({
         product: x._id,
         quantity: x.qty,
+        color: x.colour,
         price: x.price,
         name: x.name,
         image: x.images?.[0]?.url,
@@ -638,9 +666,15 @@ function Checkout({ cart, total, setOrder, go, clear, confirmStock }) {
         <aside className="summary">
           <h2>Votre commande</h2>
           {cart.map((x) => (
-            <p key={x._id}>
+            <p key={`${x._id}-${x.colour || "default"}`}>
               <span>
                 {x.name} × {x.qty}
+                {x.colour && (
+                  <small className="summary-colour">
+                    <i style={{ backgroundColor: x.colour }} />
+                    {colourName(x.colour)}
+                  </small>
+                )}
               </span>
               <b>{money(x.price * x.qty)}</b>
             </p>
@@ -899,6 +933,7 @@ function Admin({ products }) {
                 <tr>
                   <th>Référence</th>
                   <th>Client</th>
+                  <th>Produits / couleurs</th>
                   <th>Ville</th>
                   <th>Total</th>
                   <th>Statut</th>
@@ -912,6 +947,19 @@ function Admin({ products }) {
                     <td>
                       {o.customer?.firstName} {o.customer?.lastName}
                       <small>{o.customer?.phone}</small>
+                    </td>
+                    <td className="order-items">
+                      {o.items?.map((item, index) => (
+                        <span key={`${item.product}-${item.color || index}`}>
+                          {item.colour || item.color ? (
+                            <i style={{ backgroundColor: item.colour || item.color }} />
+                          ) : null}
+                          {item.quantity} × {item.name}
+                          {item.colour || item.color
+                            ? ` — ${colourName(item.colour || item.color)}`
+                            : ""}
+                        </span>
+                      ))}
                     </td>
                     <td>{o.customer?.city}</td>
                     <td>{money(o.total)}</td>
