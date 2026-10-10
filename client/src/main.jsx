@@ -650,7 +650,7 @@ function AdminTools({ token }) {
     let name = new FormData(e.currentTarget).get("name");
     let r = await fetch(`${API}/admin/categories`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
     if (r.ok) { let c = await r.json(); setCategories((items) => [...items, c]); e.currentTarget.reset(); setNotice("Catégorie créée avec succès."); }
-    else setNotice("Impossible de créer cette catégorie.");
+    else { let data = await r.json().catch(() => ({})); setNotice(data.message || "Impossible de créer cette catégorie."); }
   }
   async function addProduct(e) {
     e.preventDefault(); setNotice("");
