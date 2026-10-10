@@ -415,8 +415,8 @@ function ProductModal({ p, close, add }) {
           </div>
           <h3>{money(p.price)}</h3>
           <p className="description">
-            Une pièce soigneusement sélectionnée pour apporter élégance et
-            caractère à votre intérieur.
+            {p.description ||
+              "Une pièce soigneusement sélectionnée pour apporter élégance et caractère à votre intérieur."}
           </p>
           <p className="choice">
             Choisissez votre couleur
