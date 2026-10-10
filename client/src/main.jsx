@@ -419,16 +419,25 @@ function ProductModal({ p, close, add }) {
             caractère à votre intérieur.
           </p>
           <p className="choice">
-            Couleur : <b>{colour}</b>
+            Choisissez votre couleur
+            <span
+              className="selected-colour"
+              style={{ backgroundColor: colour }}
+              aria-label="Couleur sélectionnée"
+            />
           </p>
-          <div className="colors">
-            {(p.colors || ["Naturel"]).map((c) => (
+          <div className="colors" role="radiogroup" aria-label="Couleurs disponibles">
+            {(p.colors || ["#D9C4A7"]).map((c, index) => (
               <button
-                className={c === colour ? "active" : ""}
+                type="button"
+                className={"color-swatch " + (c === colour ? "active" : "")}
                 onClick={() => setColour(c)}
                 key={c}
+                style={{ backgroundColor: c }}
+                aria-label={`Choisir la couleur ${index + 1}`}
+                aria-pressed={c === colour}
               >
-                {c}
+                {c === colour && <Check size={16} strokeWidth={3} aria-hidden="true" />}
               </button>
             ))}
           </div>
