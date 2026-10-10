@@ -26,6 +26,7 @@ import "./brand.css";
 import "./recovery.css";
 import "./password.css";
 import "./admin-redesign.css";
+import "./catalog-manager.css";
 
 const API = "/api";
 const fallback = [];
@@ -679,6 +680,16 @@ function AdminTools({ token }) {
     </div>{notice && <p className="notice">{notice}</p>}
   </section>;
 }
+function CatalogManager({ token }) {
+  const [categories, setCategories] = useState([]), [products, setProducts] = useState([]), [notice, setNotice] = useState("");
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const load = () => Promise.all([fetch(`${API}/admin/categories`, {headers}).then((r) => r.json()), fetch(`${API}/admin/products`, {headers}).then((r) => r.json())]).then(([cats, items]) => { setCategories(cats); setProducts(items); });
+  useEffect(() => { load().catch(() => setNotice("Impossible de charger le catalogue.")); }, []);
+  async function saveCategory(e, id) { e.preventDefault(); let name = new FormData(e.currentTarget).get("name"); let r = await fetch(`${API}/admin/categories/${id}`, {method:"PATCH",headers,body:JSON.stringify({name})}); setNotice(r.ok ? "Catégorie mise à jour." : "Modification impossible."); if(r.ok) load(); }
+  async function saveProduct(e, id) { e.preventDefault(); let d = Object.fromEntries(new FormData(e.currentTarget)); d.price=+d.price;d.stock=+d.stock;d.featured=!!d.featured;d.active=!!d.active;d.compareAtPrice=d.compareAtPrice?+d.compareAtPrice:undefined; let r = await fetch(`${API}/admin/products/${id}`, {method:"PATCH",headers,body:JSON.stringify(d)}); setNotice(r.ok ? "Produit mis à jour." : "Modification impossible."); if(r.ok) load(); }
+  async function remove(kind,id) { if(!window.confirm(`Supprimer ce${kind==='categories'?'tte catégorie et masquer ses produits':' produit'} ?`)) return; let r = await fetch(`${API}/admin/${kind}/${id}`, {method:"DELETE",headers}); if(r.ok){setNotice("Élément supprimé du catalogue.");load()}else setNotice("Suppression impossible."); }
+  return <section className="catalog-manager"><div className="admin-section-heading"><div><p className="eyebrow">GESTION DU CATALOGUE</p><h2>Catégories et produits</h2></div><button className="secondary-btn dark" onClick={load}>Actualiser</button></div>{notice&&<p className="notice">{notice}</p>}<div className="manager-columns"><div className="manager-card"><h3>Catégories ({categories.filter(c=>c.active).length})</h3>{categories.length===0?<p className="none">Aucune catégorie créée.</p>:categories.map(c=><details key={c._id}><summary><span>{c.name}</span><small>{c.active?'Active':'Masquée'}</small></summary><form onSubmit={(e)=>saveCategory(e,c._id)}><input name="name" defaultValue={c.name}/><div><button className="secondary-btn">Enregistrer</button><button type="button" className="delete-btn" onClick={()=>remove('categories',c._id)}>Supprimer</button></div></form></details>)}</div><div className="manager-card products-manager"><h3>Produits ({products.filter(p=>p.active).length})</h3>{products.length===0?<p className="none">Aucun produit publié.</p>:products.map(p=><details key={p._id}><summary><span><img src={p.images?.[0]?.url} alt=""/>{p.name}</span><small>{money(p.price)} · stock {p.stock}</small></summary><form onSubmit={(e)=>saveProduct(e,p._id)}><div className="admin-two"><label>Nom<input name="name" defaultValue={p.name}/></label><label>Prix TND<input type="number" step="0.001" name="price" defaultValue={p.price}/></label></div><div className="admin-two"><label>Stock<input type="number" name="stock" defaultValue={p.stock}/></label><label>Prix initial<input type="number" step="0.001" name="compareAtPrice" defaultValue={p.compareAtPrice||''}/></label></div><label>Description<textarea name="description" defaultValue={p.description}/></label><label className="check"><input type="checkbox" name="featured" defaultChecked={p.featured}/> À la une</label><label className="check"><input type="checkbox" name="active" defaultChecked={p.active}/> Visible dans la boutique</label><div><button className="secondary-btn">Enregistrer</button><button type="button" className="delete-btn" onClick={()=>remove('products',p._id)}>Supprimer</button></div></form></details>)}</div></div></section>;
+}
 function Admin({ products }) {
   let [token, setToken] = useState(
       localStorage.getItem("zendella-admin-token") || "",
@@ -806,6 +817,7 @@ function Admin({ products }) {
         </div>
       </div>
       <AdminTools token={token} />
+      <CatalogManager token={token} />
       <section className="order-table">
         <div className="section-title">
           <div>
