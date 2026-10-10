@@ -1099,22 +1099,34 @@ function Showroom() {
 function About() {
   return (
     <main className="about">
-      <section>
-        <p className="eyebrow">NOTRE HISTOIRE</p>
-        <h1>
-          La beauté
-          <br />
-          du quotidien.
-        </h1>
-        <p>
-          Zendella est née d'une conviction simple : la maison doit être un
-          refuge, un terrain de jeu et un reflet de ceux qui l'habitent.
-        </p>
+      <section className="about-hero">
+        <div>
+          <p className="eyebrow">NOTRE HISTOIRE</p>
+          <h1>
+            La beauté
+            <br />
+            du quotidien.
+          </h1>
+          <p>
+            Zendella est née d'une conviction simple : la maison doit être un
+            refuge, un terrain de jeu et un reflet de ceux qui l'habitent.
+          </p>
+        </div>
+        <aside>
+          <span>01</span>
+          <p>Imaginer des intérieurs qui vous ressemblent, pièce après pièce.</p>
+        </aside>
       </section>
-      <img
-        src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=85"
-        alt="Intérieur chaleureux"
-      />
+      <section className="about-image">
+        <img
+          src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=85"
+          alt="Intérieur chaleureux"
+        />
+        <div>
+          <span>Depuis 2026</span>
+          <b>Des objets choisis<br />avec intention.</b>
+        </div>
+      </section>
       <section className="values">
         <div>
           <span>01</span>
@@ -1129,6 +1141,14 @@ function About() {
           matières qui traversent les années. Chaque collection est imaginée
           pour s'accorder, évoluer et raconter votre histoire.
         </p>
+      </section>
+      <section className="about-promise">
+        <p className="eyebrow">NOTRE PROMESSE</p>
+        <div>
+          <article><span>01</span><h3>Un choix sensible</h3><p>Des formes, des matières et des couleurs pensées pour s’harmoniser chez vous.</p></article>
+          <article><span>02</span><h3>Une maison vivante</h3><p>Des objets utiles, beaux et faciles à faire entrer dans la vraie vie.</p></article>
+          <article><span>03</span><h3>Pour durer</h3><p>Nous privilégions des pièces qui gardent leur place au fil des saisons.</p></article>
+        </div>
       </section>
     </main>
   );
