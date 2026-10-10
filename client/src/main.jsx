@@ -5,6 +5,8 @@ import {
   ShoppingBag,
   Check,
   ChevronDown,
+  Eye,
+  EyeOff,
   Heart,
   Instagram,
   Menu,
@@ -22,6 +24,7 @@ import "./styles.css";
 import "./admin.css";
 import "./brand.css";
 import "./recovery.css";
+import "./password.css";
 
 const API = "/api";
 const fallback = [];
@@ -760,7 +763,8 @@ function Admin({ products }) {
       localStorage.getItem("zendella-admin-token") || "",
     ),
     [orders, setOrders] = useState([]),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [showPassword, setShowPassword] = useState(false);
   useEffect(() => {
     if (token)
       fetch(`${API}/admin/orders`, {
@@ -820,7 +824,17 @@ function Admin({ products }) {
           </label>
           <label>
             Mot de passe
-            <input required type="password" name="password" />
+            <span className="password-field">
+              <input required type={showPassword ? "text" : "password"} name="password" />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </span>
           </label>
           {error && <p className="error">{error}</p>}
           <button type="submit" className="primary full">
