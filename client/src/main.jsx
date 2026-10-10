@@ -52,7 +52,8 @@ function App() {
     [selected, setSelected] = useState(null),
     [query, setQuery] = useState(""),
     [order, setOrder] = useState(null),
-    [menu, setMenu] = useState(false);
+    [menu, setMenu] = useState(false),
+    [cartNotice, setCartNotice] = useState("");
   useEffect(() => {
     Promise.all([
       fetch(`${API}/products?limit=24`).then((r) => (r.ok ? r.json() : null)),
@@ -69,20 +70,49 @@ function App() {
     [cart],
   );
   const add = (p) => {
+    const quantityInCart = cart.find((x) => x._id === p._id)?.qty || 0;
+    if (quantityInCart >= p.stock) {
+      setCartNotice(
+        p.stock > 0
+          ? `Il ne reste que ${p.stock} pièce${p.stock > 1 ? "s" : ""} disponible${p.stock > 1 ? "s" : ""} pour ${p.name}.`
+          : `${p.name} est actuellement en rupture de stock.`,
+      );
+      setDrawer(true);
+      return;
+    }
     setCart((a) => {
       let found = a.find((x) => x._id === p._id);
       return found
         ? a.map((x) => (x._id === p._id ? { ...x, qty: x.qty + 1 } : x))
         : [...a, { ...p, qty: 1 }];
     });
+    setCartNotice("");
     setDrawer(true);
   };
-  const change = (id, n) =>
+  const change = (item, n) => {
+    if (n > item.stock) {
+      setCartNotice(
+        `Il ne reste que ${item.stock} pièce${item.stock > 1 ? "s" : ""} disponible${item.stock > 1 ? "s" : ""} pour ${item.name}.`,
+      );
+      return;
+    }
+    setCartNotice("");
     setCart((a) =>
       a.flatMap((x) =>
-        x._id === id ? (n > 0 ? [{ ...x, qty: n }] : []) : [x],
+        x._id === item._id ? (n > 0 ? [{ ...x, qty: n }] : []) : [x],
       ),
     );
+  };
+  const confirmStock = (items) => {
+    setProducts((current) =>
+      current.map((product) => {
+        const ordered = items.find((item) => item.product === product._id);
+        return ordered
+          ? { ...product, stock: Math.max(0, product.stock - ordered.quantity) }
+          : product;
+      }),
+    );
+  };
   const total = cart.reduce((s, x) => s + x.price * x.qty, 0);
   const filtered = products.filter((p) =>
     `${p.name} ${p.category?.name || ""}`
@@ -161,6 +191,7 @@ function App() {
           setOrder={setOrder}
           go={go}
           clear={() => setCart([])}
+          confirmStock={confirmStock}
         />
       )}{" "}
       {selected && (
@@ -173,6 +204,7 @@ function App() {
         cart={cart}
         total={total}
         change={change}
+        notice={cartNotice}
         go={go}
       />
       {view !== "admin" && <Footer />}
@@ -194,10 +226,20 @@ function Card({ p, add, select }) {
       <div className="card-info">
         <p>{p.category?.name || "Maison"}</p>
         <h3>{p.name}</h3>
+        <small className={p.stock > 0 ? "stock-count" : "out-of-stock"}>
+          {p.stock > 0
+            ? `${p.stock} pièce${p.stock > 1 ? "s" : ""} en stock`
+            : "Rupture de stock"}
+        </small>
         <div>
           <b>{money(p.price)}</b>
           {p.compareAtPrice && <del>{money(p.compareAtPrice)}</del>}
-          <button onClick={() => add(p)} aria-label="Ajouter">
+          <button
+            onClick={() => add(p)}
+            aria-label="Ajouter"
+            disabled={!p.stock}
+            title={p.stock ? "Ajouter au panier" : "Produit en rupture de stock"}
+          >
             <Plus size={18} />
           </button>
         </div>
@@ -391,10 +433,14 @@ function ProductModal({ p, close, add }) {
             ))}
           </div>
           <p className="stock">
-            <Check size={16} /> En stock — expédié sous 24 à 48h
+            <Check size={16} />
+            {p.stock > 0
+              ? `${p.stock} pièce${p.stock > 1 ? "s" : ""} disponible${p.stock > 1 ? "s" : ""} — expédié sous 24 à 48h`
+              : "Rupture de stock"}
           </p>
           <button
             className="primary full"
+            disabled={!p.stock}
             onClick={() => {
               add(p);
               close();
@@ -407,7 +453,7 @@ function ProductModal({ p, close, add }) {
     </div>
   );
 }
-function Cart({ drawer, close, cart, total, change, go }) {
+function Cart({ drawer, close, cart, total, change, go, notice }) {
   return (
     <>
       <div className={"shade " + (drawer ? "show" : "")} onClick={close} />
@@ -439,11 +485,15 @@ function Cart({ drawer, close, cart, total, change, go }) {
                     <h3>{x.name}</h3>
                     <p>{money(x.price)}</p>
                     <div className="stepper">
-                      <button onClick={() => change(x._id, x.qty - 1)}>
+                      <button onClick={() => change(x, x.qty - 1)}>
                         <Minus size={14} />
                       </button>
                       <span>{x.qty}</span>
-                      <button onClick={() => change(x._id, x.qty + 1)}>
+                      <button
+                        onClick={() => change(x, x.qty + 1)}
+                        disabled={x.qty >= x.stock}
+                        aria-label={`Ajouter une pièce de ${x.name}`}
+                      >
                         <Plus size={14} />
                       </button>
                     </div>
@@ -452,6 +502,7 @@ function Cart({ drawer, close, cart, total, change, go }) {
                 </div>
               ))}
             </div>
+            {notice && <p className="cart-notice" role="alert">{notice}</p>}
             <div className="cart-foot">
               <p>
                 <span>Sous-total</span>
@@ -474,8 +525,9 @@ function Cart({ drawer, close, cart, total, change, go }) {
     </>
   );
 }
-function Checkout({ cart, total, setOrder, go, clear }) {
-  let [sending, setSending] = useState(false);
+function Checkout({ cart, total, setOrder, go, clear, confirmStock }) {
+  let [sending, setSending] = useState(false),
+    [error, setError] = useState("");
   if (!cart.length)
     return (
       <main className="checkout">
@@ -490,6 +542,7 @@ function Checkout({ cart, total, setOrder, go, clear }) {
   async function submit(e) {
     e.preventDefault();
     setSending(true);
+    setError("");
     let data = Object.fromEntries(new FormData(e.currentTarget));
     let payload = {
       ...data,
@@ -509,13 +562,15 @@ function Checkout({ cart, total, setOrder, go, clear }) {
         body: JSON.stringify(payload),
       });
       let o = await r.json();
+      if (!r.ok) throw new Error(o.message || "Impossible de créer la commande.");
       setOrder(
         o.order || { orderNumber: "ZEN-" + Date.now().toString().slice(-6) },
       );
-    } catch {
-      setOrder({ orderNumber: "ZEN-" + Date.now().toString().slice(-6) });
+      confirmStock(payload.items);
+      clear();
+    } catch (error) {
+      setError(error.message || "Impossible de créer la commande. Réessayez.");
     }
-    clear();
     setSending(false);
   }
   return (
@@ -602,6 +657,7 @@ function Checkout({ cart, total, setOrder, go, clear }) {
               Vous réglez votre commande à sa réception.
             </span>
           </div>
+          {error && <p className="checkout-error" role="alert">{error}</p>}
           <button className="primary full" disabled={sending}>
             {sending ? "Enregistrement…" : "Confirmer la commande"}
           </button>
@@ -627,7 +683,7 @@ function Success({ order, go }) {
         <p className="delivery">
           <Truck /> Livraison estimée sous 8 jours ouvrés
         </p>
-        <button className="primary" onClick={() => go("home")}>
+        <button className="primary" onClick={() => go("shop")}>
           Retour à l'accueil
         </button>
       </div>
