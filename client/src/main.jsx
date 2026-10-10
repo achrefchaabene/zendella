@@ -1,38 +1,1069 @@
-import React, {useEffect, useMemo, useState} from 'react';
-import {createRoot} from 'react-dom/client';
-import {ArrowRight, ShoppingBag, Check, ChevronDown, Heart, Instagram, Menu, Minus, PackageCheck, Plus, Search, ShieldCheck, Sparkles, Star, Truck, X} from 'lucide-react';
-import './styles.css';
-import './admin.css';
-import './brand.css';
-import './recovery.css';
+import React, { useEffect, useMemo, useState } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  ArrowRight,
+  ShoppingBag,
+  Check,
+  ChevronDown,
+  Heart,
+  Instagram,
+  Menu,
+  Minus,
+  PackageCheck,
+  Plus,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Truck,
+  X,
+} from "lucide-react";
+import "./styles.css";
+import "./admin.css";
+import "./brand.css";
+import "./recovery.css";
 
-const API=import.meta.env.VITE_API_URL||'http://localhost:5000/api';
-const fallback=[];
-const money=n=>new Intl.NumberFormat('fr-TN',{style:'currency',currency:'TND',minimumFractionDigits:3,maximumFractionDigits:3}).format(n||0);
-function App(){
- const [products,setProducts]=useState(fallback),[categories,setCategories]=useState([]),[cart,setCart]=useState(JSON.parse(localStorage.getItem('zendella-cart')||'[]')),[drawer,setDrawer]=useState(false),[view,setView]=useState(location.pathname==='/admin'||location.hash==='#admin'?'admin':'home'),[selected,setSelected]=useState(null),[query,setQuery]=useState(''),[order,setOrder]=useState(null),[menu,setMenu]=useState(false);
- useEffect(()=>{Promise.all([fetch(`${API}/products?limit=24`).then(r=>r.ok?r.json():null),fetch(`${API}/categories`).then(r=>r.ok?r.json():null)]).then(([p,c])=>{if(p?.products?.length)setProducts(p.products);if(c)setCategories(c) }).catch(()=>{})},[]);
- useEffect(()=>localStorage.setItem('zendella-cart',JSON.stringify(cart)),[cart]);
- const add=p=>{setCart(a=>{let found=a.find(x=>x._id===p._id);return found?a.map(x=>x._id===p._id?{...x,qty:x.qty+1}:x):[...a,{...p,qty:1}]});setDrawer(true)};
- const change=(id,n)=>setCart(a=>a.flatMap(x=>x._id===id?(n>0?[{...x,qty:n}]:[]):[x]));
- const total=cart.reduce((s,x)=>s+x.price*x.qty,0);
- const filtered=products.filter(p=>`${p.name} ${p.category?.name||''}`.toLowerCase().includes(query.toLowerCase()));
- const go=v=>{setView(v);setSelected(null);window.history.pushState({},'',v==='admin'?'/admin':'/');window.scrollTo({top:0,behavior:'smooth'})};
- return <><div className="announce"><Sparkles size={15}/> LIVRAISON OFFERTE DÈS 150 TND <span>•</span> Paiement à la livraison</div>
- <header><button className="icon mobile" onClick={()=>setMenu(!menu)} aria-label="Menu"><Menu/></button><button className="site-logo" onClick={()=>go('home')} aria-label="Zendala Dream"><img src="/zendala-dream-logo.png" alt="Zendala Dream"/></button><nav className={menu?'open':''}><button onClick={()=>go('shop')}>La boutique</button><button onClick={()=>go('showroom')}>Showroom</button><button onClick={()=>go('about')}>Notre histoire</button><button className="admin-link" onClick={()=>go('admin')}>Espace admin</button></nav><div className="header-tools"><button className="icon search"><Search size={20}/></button><button className="bag" onClick={()=>setDrawer(true)}><ShoppingBag size={20}/><i>{cart.reduce((s,x)=>s+x.qty,0)}</i></button></div></header>
- {view==='home'&&<Home products={products} categories={categories} add={add} go={go} select={setSelected}/>} {view==='shop'&&<Shop products={filtered} query={query} setQuery={setQuery} add={add} select={setSelected}/>} {view==='showroom'&&<Showroom/>} {view==='about'&&<About/>} {view==='admin'&&<Admin products={products}/>} {view==='checkout'&&<Checkout cart={cart} total={total} setOrder={setOrder} go={go} clear={()=>setCart([])}/>} {selected&&<ProductModal p={selected} close={()=>setSelected(null)} add={add}/>} {order&&<Success order={order} go={go}/>} <Cart drawer={drawer} close={()=>setDrawer(false)} cart={cart} total={total} change={change} go={go}/>{view!=='admin'&&<Footer/>}</>;
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const fallback = [];
+const money = (n) =>
+  new Intl.NumberFormat("fr-TN", {
+    style: "currency",
+    currency: "TND",
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  }).format(n || 0);
+function App() {
+  const [products, setProducts] = useState(fallback),
+    [categories, setCategories] = useState([]),
+    [cart, setCart] = useState(
+      JSON.parse(localStorage.getItem("zendella-cart") || "[]"),
+    ),
+    [drawer, setDrawer] = useState(false),
+    [view, setView] = useState(
+      location.pathname === "/admin" || location.hash === "#admin"
+        ? "admin"
+        : "home",
+    ),
+    [selected, setSelected] = useState(null),
+    [query, setQuery] = useState(""),
+    [order, setOrder] = useState(null),
+    [menu, setMenu] = useState(false);
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API}/products?limit=24`).then((r) => (r.ok ? r.json() : null)),
+      fetch(`${API}/categories`).then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([p, c]) => {
+        if (p?.products?.length) setProducts(p.products);
+        if (c) setCategories(c);
+      })
+      .catch(() => {});
+  }, []);
+  useEffect(
+    () => localStorage.setItem("zendella-cart", JSON.stringify(cart)),
+    [cart],
+  );
+  const add = (p) => {
+    setCart((a) => {
+      let found = a.find((x) => x._id === p._id);
+      return found
+        ? a.map((x) => (x._id === p._id ? { ...x, qty: x.qty + 1 } : x))
+        : [...a, { ...p, qty: 1 }];
+    });
+    setDrawer(true);
+  };
+  const change = (id, n) =>
+    setCart((a) =>
+      a.flatMap((x) =>
+        x._id === id ? (n > 0 ? [{ ...x, qty: n }] : []) : [x],
+      ),
+    );
+  const total = cart.reduce((s, x) => s + x.price * x.qty, 0);
+  const filtered = products.filter((p) =>
+    `${p.name} ${p.category?.name || ""}`
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+  const go = (v) => {
+    setView(v);
+    setSelected(null);
+    window.history.pushState({}, "", v === "admin" ? "/admin" : "/");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  return (
+    <>
+      <div className="announce">
+        <Sparkles size={15} /> LIVRAISON OFFERTE DÈS 150 TND <span>•</span>{" "}
+        Paiement à la livraison
+      </div>
+      <header>
+        <button
+          className="icon mobile"
+          onClick={() => setMenu(!menu)}
+          aria-label="Menu"
+        >
+          <Menu />
+        </button>
+        <button
+          className="site-logo"
+          onClick={() => go("home")}
+          aria-label="Zendala Dream"
+        >
+          <img src="/zendala-dream-logo.png" alt="Zendala Dream" />
+        </button>
+        <nav className={menu ? "open" : ""}>
+          <button onClick={() => go("shop")}>La boutique</button>
+          <button onClick={() => go("showroom")}>Showroom</button>
+          <button onClick={() => go("about")}>Notre histoire</button>
+          <button className="admin-link" onClick={() => go("admin")}>
+            Espace admin
+          </button>
+        </nav>
+        <div className="header-tools">
+          <button className="icon search">
+            <Search size={20} />
+          </button>
+          <button className="bag" onClick={() => setDrawer(true)}>
+            <ShoppingBag size={20} />
+            <i>{cart.reduce((s, x) => s + x.qty, 0)}</i>
+          </button>
+        </div>
+      </header>
+      {view === "home" && (
+        <Home
+          products={products}
+          categories={categories}
+          add={add}
+          go={go}
+          select={setSelected}
+        />
+      )}{" "}
+      {view === "shop" && (
+        <Shop
+          products={filtered}
+          query={query}
+          setQuery={setQuery}
+          add={add}
+          select={setSelected}
+        />
+      )}{" "}
+      {view === "showroom" && <Showroom />} {view === "about" && <About />}{" "}
+      {view === "admin" && <Admin products={products} />}{" "}
+      {view === "checkout" && (
+        <Checkout
+          cart={cart}
+          total={total}
+          setOrder={setOrder}
+          go={go}
+          clear={() => setCart([])}
+        />
+      )}{" "}
+      {selected && (
+        <ProductModal p={selected} close={() => setSelected(null)} add={add} />
+      )}{" "}
+      {order && <Success order={order} go={go} />}{" "}
+      <Cart
+        drawer={drawer}
+        close={() => setDrawer(false)}
+        cart={cart}
+        total={total}
+        change={change}
+        go={go}
+      />
+      {view !== "admin" && <Footer />}
+    </>
+  );
 }
-function Card({p,add,select}){return <article className="card"><button className="product-img" onClick={()=>select(p)}><img src={p.images?.[0]?.url} alt={p.name}/>{p.compareAtPrice&&<em>-{Math.round((1-p.price/p.compareAtPrice)*100)}%</em>}<span className="heart"><Heart size={19}/></span></button><div className="card-info"><p>{p.category?.name||'Maison'}</p><h3>{p.name}</h3><div><b>{money(p.price)}</b>{p.compareAtPrice&&<del>{money(p.compareAtPrice)}</del>}<button onClick={()=>add(p)} aria-label="Ajouter"><Plus size={18}/></button></div></div></article>}
-function Home({products,categories,add,go,select}){return <main><section className="hero"><div><p className="eyebrow">NOUVELLE COLLECTION · 2026</p><h1>Donnez une âme<br/>à votre intérieur.</h1><p className="lead">Des objets singuliers pour transformer les instants ordinaires en rituels précieux.</p><button className="primary" onClick={()=>go('shop')}>Découvrir la collection <ArrowRight size={18}/></button></div><div className="hero-pic"><img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1300&q=85" alt="Intérieur Zendala Dream"/><span>CURATED<br/>WITH LOVE</span></div></section><section className="perks"><div><Truck/><b>Livraison sous 8 jours</b><span>Partout en Tunisie</span></div><div><PackageCheck/><b>Paiement à la livraison</b><span>Commandez sereinement</span></div><div><ShieldCheck/><b>Qualité garantie</b><span>Sélection durable</span></div></section><section className="section"><div className="section-title"><div><p className="eyebrow">CHOISIS POUR VOUS</p><h2>Les essentiels Zendala Dream</h2></div><button className="text-btn" onClick={()=>go('shop')}>Voir toute la boutique <ArrowRight size={17}/></button></div>{products.length?<div className="grid">{products.slice(0,4).map(p=><Card key={p._id} p={p} add={add} select={select}/>)}</div>:<div className="catalog-empty"><PackageCheck size={34}/><h3>La collection arrive bientôt.</h3><p>Nos produits seront ajoutés par notre équipe.</p></div>}</section>{categories.length>0&&<section className="category-strip"><div><p className="eyebrow">PARCOURIR PAR AMBIANCE</p><h2>Un espace qui vous ressemble.</h2></div><div className="cat-list">{categories.slice(0,4).map((c,i)=><button key={c._id} onClick={()=>go('shop')}><span>0{i+1}</span>{c.name}<ArrowRight size={18}/></button>)}</div></section>}<section className="editorial"><img src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=85" alt="Sélection maison"/><div><p className="eyebrow">L'ART DU DÉTAIL</p><h2>Des pièces pensées pour durer.</h2><p>Chaque objet est choisi pour sa matière, son histoire et la douceur qu'il apporte à votre quotidien.</p><button className="line-btn" onClick={()=>go('about')}>Notre démarche <ArrowRight size={18}/></button></div></section></main>}
-function Shop({products,query,setQuery,add,select}){return <main className="shop"><div className="page-head"><p className="eyebrow">LA BOUTIQUE</p><h1>Tout pour la maison</h1><p>Une sélection d'objets fonctionnels, beaux et durables.</p></div><div className="filter"><div><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Rechercher un produit"/></div><button>Filtrer <ChevronDown size={16}/></button></div><p className="count">{products.length} produits</p>{products.length?<div className="grid">{products.map(p=><Card key={p._id} p={p} add={add} select={select}/>)}</div>:<div className="catalog-empty"><PackageCheck size={34}/><h3>Aucun produit pour le moment.</h3><p>Revenez bientôt découvrir la collection Zendala Dream.</p></div>}</main>}
-function ProductModal({p,close,add}){let [colour,setColour]=useState(p.colors?.[0]);return <div className="overlay"><div className="modal"><button className="close" onClick={close}><X/></button><img src={p.images?.[0]?.url} alt={p.name}/><div><p className="eyebrow">{p.category?.name||'MAISON'}</p><h2>{p.name}</h2><div className="rating"><Star fill="currentColor" size={16}/><Star fill="currentColor" size={16}/><Star fill="currentColor" size={16}/><Star fill="currentColor" size={16}/><Star fill="currentColor" size={16}/><span>4.9 · 18 avis</span></div><h3>{money(p.price)}</h3><p className="description">Une pièce soigneusement sélectionnée pour apporter élégance et caractère à votre intérieur.</p><p className="choice">Couleur : <b>{colour}</b></p><div className="colors">{(p.colors||['Naturel']).map(c=><button className={c===colour?'active':''} onClick={()=>setColour(c)} key={c}>{c}</button>)}</div><p className="stock"><Check size={16}/> En stock — expédié sous 24 à 48h</p><button className="primary full" onClick={()=>{add(p);close()}}>Ajouter au panier <ShoppingBag size={18}/></button></div></div></div>}
-function Cart({drawer,close,cart,total,change,go}){return <><div className={'shade '+(drawer?'show':'')} onClick={close}/><aside className={'cart '+(drawer?'show':'')}><div className="cart-head"><h2>Votre panier <small>({cart.reduce((s,x)=>s+x.qty,0)})</small></h2><button className="icon" onClick={close}><X/></button></div>{!cart.length?<div className="empty"><ShoppingBag size={38}/><h3>Votre panier est vide</h3><p>Découvrez nos objets choisis avec soin.</p><button className="primary" onClick={close}>Continuer mes achats</button></div>:<><div className="cart-items">{cart.map(x=><div className="cart-item" key={x._id}><img src={x.images?.[0]?.url} alt=""/><div><h3>{x.name}</h3><p>{money(x.price)}</p><div className="stepper"><button onClick={()=>change(x._id,x.qty-1)}><Minus size={14}/></button><span>{x.qty}</span><button onClick={()=>change(x._id,x.qty+1)}><Plus size={14}/></button></div></div><b>{money(x.price*x.qty)}</b></div>)}</div><div className="cart-foot"><p><span>Sous-total</span><b>{money(total)}</b></p><small>Livraison offerte dès 75 000 FCFA</small><button className="primary full" onClick={()=>{close();go('checkout')}}>Passer la commande <ArrowRight size={18}/></button></div></>}</aside></>}
-function Checkout({cart,total,setOrder,go,clear}){let [sending,setSending]=useState(false);if(!cart.length)return <main className="checkout"><div className="empty"><h2>Votre panier est vide.</h2><button className="primary" onClick={()=>go('shop')}>Voir la boutique</button></div></main>;async function submit(e){e.preventDefault();setSending(true);let data=Object.fromEntries(new FormData(e.currentTarget));let payload={...data,items:cart.map(x=>({product:x._id,quantity:x.qty,price:x.price,name:x.name,image:x.images?.[0]?.url})),total};try{let r=await fetch(`${API}/orders/guest`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});let o=await r.json();setOrder(o.order||{orderNumber:'ZEN-'+Date.now().toString().slice(-6)});}catch{setOrder({orderNumber:'ZEN-'+Date.now().toString().slice(-6)})}clear();setSending(false)}return <main className="checkout"><div className="checkout-title"><button className="brand" onClick={()=>go('home')}>zen<span>della</span></button><p>Finaliser votre commande</p></div><form onSubmit={submit}><section><h2>Vos informations</h2><div className="two"><label>Prénom<input required name="firstName"/></label><label>Nom<input required name="lastName"/></label></div><label>Téléphone<input required name="phone" placeholder="080…"/></label><label>Email <small>(optionnel)</small><input type="email" name="email"/></label><h2>Adresse de livraison</h2><label>Adresse complète<input required name="address" placeholder="Rue, quartier, repère…"/></label><div className="two"><label>Ville<input required name="city"/></label><label>État<input required name="state"/></label></div><label>Note pour la livraison <small>(optionnel)</small><textarea name="note" rows="3"/></label></section><aside className="summary"><h2>Votre commande</h2>{cart.map(x=><p key={x._id}><span>{x.name} × {x.qty}</span><b>{money(x.price*x.qty)}</b></p>)}<hr/><p><span>Sous-total</span><b>{money(total)}</b></p><p><span>Livraison</span><b>{total>=75000?'Offerte':'Calculée à la confirmation'}</b></p><h3><span>Total</span><b>{money(total)}</b></h3><div className="cod"><PackageCheck/><span><b>Paiement à la livraison</b><br/>Vous réglez votre commande à sa réception.</span></div><button className="primary full" disabled={sending}>{sending?'Enregistrement…':'Confirmer la commande'}</button><small>Livraison estimée : 8 jours ouvrés.</small></aside></form></main>}
-function Success({order,go}){return <div className="overlay"><div className="success"><div><Check/></div><p className="eyebrow">COMMANDE CONFIRMÉE</p><h1>Merci pour votre confiance.</h1><p>Votre commande <b>#{order.orderNumber}</b> a bien été reçue. Notre équipe vous contactera avant l'expédition.</p><p className="delivery"><Truck/> Livraison estimée sous 8 jours ouvrés</p><button className="primary" onClick={()=>go('home')}>Retour à l'accueil</button></div></div>}
-function AdminTools({token}){const [categories,setCategories]=useState([]),[notice,setNotice]=useState('');const headers={Authorization:`Bearer ${token}`};useEffect(()=>{fetch(`${API}/categories`).then(r=>r.json()).then(setCategories)},[]);async function addCategory(e){e.preventDefault();let name=new FormData(e.currentTarget).get('name');let r=await fetch(`${API}/admin/categories`,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({name})});if(r.ok){let c=await r.json();setCategories(a=>[...a,c]);e.currentTarget.reset();setNotice('Catégorie créée.')}else setNotice('Impossible de créer cette catégorie.')}async function addProduct(e){e.preventDefault();let form=new FormData(e.currentTarget);form.set('colors',JSON.stringify((form.get('colors')||'').split(',').map(x=>x.trim()).filter(Boolean)));form.set('featured',form.get('featured')?'true':'false');let r=await fetch(`${API}/admin/products`,{method:'POST',headers,body:form});if(r.ok){e.currentTarget.reset();setNotice('Produit ajouté avec succès. Actualisez la page boutique pour le voir.')}else{let d=await r.json().catch(()=>({}));setNotice(d.message||'Impossible d’ajouter le produit.')}}return <section className="admin-products"><div><p className="eyebrow">CATÉGORIES & PRODUITS</p><h2>Ajouter au catalogue</h2></div><div className="admin-forms"><form onSubmit={addCategory}><h3>Nouvelle catégorie</h3><input name="name" required placeholder="Ex. Décoration"/><button className="primary">Créer</button></form><form onSubmit={addProduct} encType="multipart/form-data"><h3>Nouveau produit</h3><div className="admin-two"><input required name="name" placeholder="Nom du produit"/><select required name="category" defaultValue=""><option value="" disabled>Catégorie</option>{categories.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}</select></div><textarea name="description" placeholder="Description du produit"/><div className="admin-two"><input required min="0" step="0.001" type="number" name="price" placeholder="Prix (TND)"/><input required min="0" type="number" name="stock" placeholder="Stock"/></div><input min="0" step="0.001" type="number" name="compareAtPrice" placeholder="Ancien prix / promotion (facultatif)"/><input name="colors" placeholder="Couleurs : beige, blanc, noir"/><label className="file-label">Photos du produit<input required name="images" type="file" accept="image/*" multiple/></label><label className="check"><input type="checkbox" name="featured"/> Mettre en avant sur l’accueil</label><button className="primary">Publier le produit</button></form></div>{notice&&<p className="notice">{notice}</p>}</section>}
-function Admin({products}){let [token,setToken]=useState(localStorage.getItem('zendella-admin-token')||''),[orders,setOrders]=useState([]),[error,setError]=useState('');useEffect(()=>{if(token)fetch(`${API}/admin/orders`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():Promise.reject()).then(setOrders).catch(()=>{setError('Session expirée ou accès administrateur requis');setToken('');localStorage.removeItem('zendella-admin-token')})},[token]);async function login(e){e.preventDefault();let d=Object.fromEntries(new FormData(e.currentTarget));let r=await fetch(`${API}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}),data=await r.json();if(!r.ok||data.user?.role!=='admin')return setError('Identifiants administrateur invalides');localStorage.setItem('zendella-admin-token',data.token);setToken(data.token)}async function update(id,status){let r=await fetch(`${API}/admin/orders/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({status})});if(r.ok)setOrders(a=>a.map(o=>o._id===id?{...o,status}:o))}if(!token)return <main className="admin-login"><form onSubmit={login}><button className="site-logo"><img src="/zendala-dream-logo.png" alt="Zendala Dream"/></button><p className="eyebrow">ESPACE SÉCURISÉ</p><h1>Administration</h1><label>Email<input required type="email" name="email"/></label><label>Mot de passe<input required type="password" name="password"/></label>{error&&<p className="error">{error}</p>}<button className="primary full">Se connecter</button><small>Utilisez les identifiants ADMIN_EMAIL et ADMIN_PASSWORD définis sur Render.</small></form></main>;return <main className="admin"><div className="admin-top"><div><button className="site-logo"><img src="/zendala-dream-logo.png" alt="Zendala Dream"/></button><p>Tableau de bord</p></div><button className="line-btn" onClick={()=>{localStorage.removeItem('zendella-admin-token');setToken('')}}>Déconnexion</button></div><div className="stats"><div><span>Commandes</span><b>{orders.length}</b></div><div><span>À approuver</span><b>{orders.filter(o=>o.status==='pending').length}</b></div><div><span>Produits</span><b>{products.length}</b></div><div><span>Stock faible</span><b>{products.filter(p=>p.stock<6).length}</b></div></div><AdminTools token={token}/><section className="order-table"><div className="section-title"><div><p className="eyebrow">COMMANDES</p><h2>À traiter</h2></div></div>{!orders.length?<p className="none">Aucune commande pour le moment.</p>:<div className="table-wrap"><table><thead><tr><th>Référence</th><th>Client</th><th>Ville</th><th>Total</th><th>Statut</th><th>Action</th></tr></thead><tbody>{orders.map(o=><tr key={o._id}><td>#{o.orderNumber}</td><td>{o.customer?.firstName} {o.customer?.lastName}<small>{o.customer?.phone}</small></td><td>{o.customer?.city}</td><td>{money(o.total)}</td><td><span className={'status '+o.status}>{o.status}</span></td><td><select value={o.status} onChange={e=>update(o._id,e.target.value)}><option value="pending">En attente</option><option value="approved">Approuvée</option><option value="processing">Préparation</option><option value="shipped">Expédiée</option><option value="delivered">Livrée</option><option value="cancelled">Annulée</option></select></td></tr>)}</tbody></table></div>}</section></main>}
-function Showroom(){return <main className="showroom"><div><p className="eyebrow">NOTRE UNIVERS</p><h1>Le showroom Zendella</h1><p>Un lieu d'inspiration où les textures, les formes et la lumière dialoguent.</p></div><img src="https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=1400&q=85" alt="Showroom Zendella"/><section><h2>Venez vivre l'expérience.</h2><p>Notre showroom est actuellement disponible sur rendez-vous à Lagos. Suivez-nous pour découvrir nos pop-ups et nouvelles collections.</p><button className="line-btn">@zendella.home <Instagram size={18}/></button></section></main>}
-function About(){return <main className="about"><section><p className="eyebrow">NOTRE HISTOIRE</p><h1>La beauté<br/>du quotidien.</h1><p>Zendella est née d'une conviction simple : la maison doit être un refuge, un terrain de jeu et un reflet de ceux qui l'habitent.</p></section><img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=85" alt="Intérieur chaleureux"/><section className="values"><div><span>01</span><h2>Choisir moins,<br/>choisir mieux.</h2></div><p>Nous privilégions les pièces intemporelles, fabriquées dans des matières qui traversent les années. Chaque collection est imaginée pour s'accorder, évoluer et raconter votre histoire.</p></section></main>}
-function Footer(){return <footer><div><button className="site-logo"><img src="/zendala-dream-logo.png" alt="Zendala Dream"/></button><p>Des objets qui font du bien à la maison.</p></div><div><b>La maison Zendala</b><a>La boutique</a><a>Showroom</a><a>Notre histoire</a></div><div><b>Suivez-nous</b><a href="https://www.instagram.com/ste_zendala_dream/" target="_blank" rel="noreferrer">Instagram @ste_zendala_dream</a><a>Livraison & retours</a><a>Nous contacter</a></div><div><b>La lettre Zendala</b><p>Inspirations, nouveautés et offres privées.</p><div className="newsletter"><input placeholder="Votre e-mail"/><button><ArrowRight size={18}/></button></div></div><small>© 2026 Zendala Dream. Tous droits réservés.</small></footer>}
-class ErrorBoundary extends React.Component{constructor(props){super(props);this.state={error:null}}static getDerivedStateFromError(error){return{error}}render(){if(this.state.error)return <main className="app-error"><p className="eyebrow">ERREUR DE CHARGEMENT</p><h1>Zendala Dream redémarre.</h1><p>Actualisez la page. Si le problème persiste, réessayez dans quelques instants.</p><code>{this.state.error.message}</code><button className="primary" onClick={()=>window.location.reload()}>Actualiser le site</button></main>;return this.props.children}}
-createRoot(document.getElementById('root')).render(<ErrorBoundary><App/></ErrorBoundary>);
+function Card({ p, add, select }) {
+  return (
+    <article className="card">
+      <button className="product-img" onClick={() => select(p)}>
+        <img src={p.images?.[0]?.url} alt={p.name} />
+        {p.compareAtPrice && (
+          <em>-{Math.round((1 - p.price / p.compareAtPrice) * 100)}%</em>
+        )}
+        <span className="heart">
+          <Heart size={19} />
+        </span>
+      </button>
+      <div className="card-info">
+        <p>{p.category?.name || "Maison"}</p>
+        <h3>{p.name}</h3>
+        <div>
+          <b>{money(p.price)}</b>
+          {p.compareAtPrice && <del>{money(p.compareAtPrice)}</del>}
+          <button onClick={() => add(p)} aria-label="Ajouter">
+            <Plus size={18} />
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+function Home({ products, categories, add, go, select }) {
+  return (
+    <main>
+      <section className="hero">
+        <div>
+          <p className="eyebrow">NOUVELLE COLLECTION · 2026</p>
+          <h1>
+            Donnez une âme
+            <br />à votre intérieur.
+          </h1>
+          <p className="lead">
+            Des objets singuliers pour transformer les instants ordinaires en
+            rituels précieux.
+          </p>
+          <button className="primary" onClick={() => go("shop")}>
+            Découvrir la collection <ArrowRight size={18} />
+          </button>
+        </div>
+        <div className="hero-pic">
+          <img
+            src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1300&q=85"
+            alt="Intérieur Zendala Dream"
+          />
+          <span>
+            CURATED
+            <br />
+            WITH LOVE
+          </span>
+        </div>
+      </section>
+      <section className="perks">
+        <div>
+          <Truck />
+          <b>Livraison sous 8 jours</b>
+          <span>Partout en Tunisie</span>
+        </div>
+        <div>
+          <PackageCheck />
+          <b>Paiement à la livraison</b>
+          <span>Commandez sereinement</span>
+        </div>
+        <div>
+          <ShieldCheck />
+          <b>Qualité garantie</b>
+          <span>Sélection durable</span>
+        </div>
+      </section>
+      <section className="section">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">CHOISIS POUR VOUS</p>
+            <h2>Les essentiels Zendala Dream</h2>
+          </div>
+          <button className="text-btn" onClick={() => go("shop")}>
+            Voir toute la boutique <ArrowRight size={17} />
+          </button>
+        </div>
+        {products.length ? (
+          <div className="grid">
+            {products.slice(0, 4).map((p) => (
+              <Card key={p._id} p={p} add={add} select={select} />
+            ))}
+          </div>
+        ) : (
+          <div className="catalog-empty">
+            <PackageCheck size={34} />
+            <h3>La collection arrive bientôt.</h3>
+            <p>Nos produits seront ajoutés par notre équipe.</p>
+          </div>
+        )}
+      </section>
+      {categories.length > 0 && (
+        <section className="category-strip">
+          <div>
+            <p className="eyebrow">PARCOURIR PAR AMBIANCE</p>
+            <h2>Un espace qui vous ressemble.</h2>
+          </div>
+          <div className="cat-list">
+            {categories.slice(0, 4).map((c, i) => (
+              <button key={c._id} onClick={() => go("shop")}>
+                <span>0{i + 1}</span>
+                {c.name}
+                <ArrowRight size={18} />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+      <section className="editorial">
+        <img
+          src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=85"
+          alt="Sélection maison"
+        />
+        <div>
+          <p className="eyebrow">L'ART DU DÉTAIL</p>
+          <h2>Des pièces pensées pour durer.</h2>
+          <p>
+            Chaque objet est choisi pour sa matière, son histoire et la douceur
+            qu'il apporte à votre quotidien.
+          </p>
+          <button className="line-btn" onClick={() => go("about")}>
+            Notre démarche <ArrowRight size={18} />
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+function Shop({ products, query, setQuery, add, select }) {
+  return (
+    <main className="shop">
+      <div className="page-head">
+        <p className="eyebrow">LA BOUTIQUE</p>
+        <h1>Tout pour la maison</h1>
+        <p>Une sélection d'objets fonctionnels, beaux et durables.</p>
+      </div>
+      <div className="filter">
+        <div>
+          <Search size={18} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher un produit"
+          />
+        </div>
+        <button>
+          Filtrer <ChevronDown size={16} />
+        </button>
+      </div>
+      <p className="count">{products.length} produits</p>
+      {products.length ? (
+        <div className="grid">
+          {products.map((p) => (
+            <Card key={p._id} p={p} add={add} select={select} />
+          ))}
+        </div>
+      ) : (
+        <div className="catalog-empty">
+          <PackageCheck size={34} />
+          <h3>Aucun produit pour le moment.</h3>
+          <p>Revenez bientôt découvrir la collection Zendala Dream.</p>
+        </div>
+      )}
+    </main>
+  );
+}
+function ProductModal({ p, close, add }) {
+  let [colour, setColour] = useState(p.colors?.[0]);
+  return (
+    <div className="overlay">
+      <div className="modal">
+        <button className="close" onClick={close}>
+          <X />
+        </button>
+        <img src={p.images?.[0]?.url} alt={p.name} />
+        <div>
+          <p className="eyebrow">{p.category?.name || "MAISON"}</p>
+          <h2>{p.name}</h2>
+          <div className="rating">
+            <Star fill="currentColor" size={16} />
+            <Star fill="currentColor" size={16} />
+            <Star fill="currentColor" size={16} />
+            <Star fill="currentColor" size={16} />
+            <Star fill="currentColor" size={16} />
+            <span>4.9 · 18 avis</span>
+          </div>
+          <h3>{money(p.price)}</h3>
+          <p className="description">
+            Une pièce soigneusement sélectionnée pour apporter élégance et
+            caractère à votre intérieur.
+          </p>
+          <p className="choice">
+            Couleur : <b>{colour}</b>
+          </p>
+          <div className="colors">
+            {(p.colors || ["Naturel"]).map((c) => (
+              <button
+                className={c === colour ? "active" : ""}
+                onClick={() => setColour(c)}
+                key={c}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <p className="stock">
+            <Check size={16} /> En stock — expédié sous 24 à 48h
+          </p>
+          <button
+            className="primary full"
+            onClick={() => {
+              add(p);
+              close();
+            }}
+          >
+            Ajouter au panier <ShoppingBag size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+function Cart({ drawer, close, cart, total, change, go }) {
+  return (
+    <>
+      <div className={"shade " + (drawer ? "show" : "")} onClick={close} />
+      <aside className={"cart " + (drawer ? "show" : "")}>
+        <div className="cart-head">
+          <h2>
+            Votre panier <small>({cart.reduce((s, x) => s + x.qty, 0)})</small>
+          </h2>
+          <button className="icon" onClick={close}>
+            <X />
+          </button>
+        </div>
+        {!cart.length ? (
+          <div className="empty">
+            <ShoppingBag size={38} />
+            <h3>Votre panier est vide</h3>
+            <p>Découvrez nos objets choisis avec soin.</p>
+            <button className="primary" onClick={close}>
+              Continuer mes achats
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="cart-items">
+              {cart.map((x) => (
+                <div className="cart-item" key={x._id}>
+                  <img src={x.images?.[0]?.url} alt="" />
+                  <div>
+                    <h3>{x.name}</h3>
+                    <p>{money(x.price)}</p>
+                    <div className="stepper">
+                      <button onClick={() => change(x._id, x.qty - 1)}>
+                        <Minus size={14} />
+                      </button>
+                      <span>{x.qty}</span>
+                      <button onClick={() => change(x._id, x.qty + 1)}>
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  </div>
+                  <b>{money(x.price * x.qty)}</b>
+                </div>
+              ))}
+            </div>
+            <div className="cart-foot">
+              <p>
+                <span>Sous-total</span>
+                <b>{money(total)}</b>
+              </p>
+              <small>Livraison offerte dès 75 000 FCFA</small>
+              <button
+                className="primary full"
+                onClick={() => {
+                  close();
+                  go("checkout");
+                }}
+              >
+                Passer la commande <ArrowRight size={18} />
+              </button>
+            </div>
+          </>
+        )}
+      </aside>
+    </>
+  );
+}
+function Checkout({ cart, total, setOrder, go, clear }) {
+  let [sending, setSending] = useState(false);
+  if (!cart.length)
+    return (
+      <main className="checkout">
+        <div className="empty">
+          <h2>Votre panier est vide.</h2>
+          <button className="primary" onClick={() => go("shop")}>
+            Voir la boutique
+          </button>
+        </div>
+      </main>
+    );
+  async function submit(e) {
+    e.preventDefault();
+    setSending(true);
+    let data = Object.fromEntries(new FormData(e.currentTarget));
+    let payload = {
+      ...data,
+      items: cart.map((x) => ({
+        product: x._id,
+        quantity: x.qty,
+        price: x.price,
+        name: x.name,
+        image: x.images?.[0]?.url,
+      })),
+      total,
+    };
+    try {
+      let r = await fetch(`${API}/orders/guest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      let o = await r.json();
+      setOrder(
+        o.order || { orderNumber: "ZEN-" + Date.now().toString().slice(-6) },
+      );
+    } catch {
+      setOrder({ orderNumber: "ZEN-" + Date.now().toString().slice(-6) });
+    }
+    clear();
+    setSending(false);
+  }
+  return (
+    <main className="checkout">
+      <div className="checkout-title">
+        <button className="brand" onClick={() => go("home")}>
+          zen<span>della</span>
+        </button>
+        <p>Finaliser votre commande</p>
+      </div>
+      <form onSubmit={submit}>
+        <section>
+          <h2>Vos informations</h2>
+          <div className="two">
+            <label>
+              Prénom
+              <input required name="firstName" />
+            </label>
+            <label>
+              Nom
+              <input required name="lastName" />
+            </label>
+          </div>
+          <label>
+            Téléphone
+            <input required name="phone" placeholder="080…" />
+          </label>
+          <label>
+            Email <small>(optionnel)</small>
+            <input type="email" name="email" />
+          </label>
+          <h2>Adresse de livraison</h2>
+          <label>
+            Adresse complète
+            <input
+              required
+              name="address"
+              placeholder="Rue, quartier, repère…"
+            />
+          </label>
+          <div className="two">
+            <label>
+              Ville
+              <input required name="city" />
+            </label>
+            <label>
+              État
+              <input required name="state" />
+            </label>
+          </div>
+          <label>
+            Note pour la livraison <small>(optionnel)</small>
+            <textarea name="note" rows="3" />
+          </label>
+        </section>
+        <aside className="summary">
+          <h2>Votre commande</h2>
+          {cart.map((x) => (
+            <p key={x._id}>
+              <span>
+                {x.name} × {x.qty}
+              </span>
+              <b>{money(x.price * x.qty)}</b>
+            </p>
+          ))}
+          <hr />
+          <p>
+            <span>Sous-total</span>
+            <b>{money(total)}</b>
+          </p>
+          <p>
+            <span>Livraison</span>
+            <b>{total >= 75000 ? "Offerte" : "Calculée à la confirmation"}</b>
+          </p>
+          <h3>
+            <span>Total</span>
+            <b>{money(total)}</b>
+          </h3>
+          <div className="cod">
+            <PackageCheck />
+            <span>
+              <b>Paiement à la livraison</b>
+              <br />
+              Vous réglez votre commande à sa réception.
+            </span>
+          </div>
+          <button className="primary full" disabled={sending}>
+            {sending ? "Enregistrement…" : "Confirmer la commande"}
+          </button>
+          <small>Livraison estimée : 8 jours ouvrés.</small>
+        </aside>
+      </form>
+    </main>
+  );
+}
+function Success({ order, go }) {
+  return (
+    <div className="overlay">
+      <div className="success">
+        <div>
+          <Check />
+        </div>
+        <p className="eyebrow">COMMANDE CONFIRMÉE</p>
+        <h1>Merci pour votre confiance.</h1>
+        <p>
+          Votre commande <b>#{order.orderNumber}</b> a bien été reçue. Notre
+          équipe vous contactera avant l'expédition.
+        </p>
+        <p className="delivery">
+          <Truck /> Livraison estimée sous 8 jours ouvrés
+        </p>
+        <button className="primary" onClick={() => go("home")}>
+          Retour à l'accueil
+        </button>
+      </div>
+    </div>
+  );
+}
+function AdminTools({ token }) {
+  const [categories, setCategories] = useState([]),
+    [notice, setNotice] = useState("");
+  const headers = { Authorization: `Bearer ${token}` };
+  useEffect(() => {
+    fetch(`${API}/categories`)
+      .then((r) => r.json())
+      .then(setCategories);
+  }, []);
+  async function addCategory(e) {
+    e.preventDefault();
+    let name = new FormData(e.currentTarget).get("name");
+    let r = await fetch(`${API}/admin/categories`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (r.ok) {
+      let c = await r.json();
+      setCategories((a) => [...a, c]);
+      e.currentTarget.reset();
+      setNotice("Catégorie créée.");
+    } else setNotice("Impossible de créer cette catégorie.");
+  }
+  async function addProduct(e) {
+    e.preventDefault();
+    let form = new FormData(e.currentTarget);
+    form.set(
+      "colors",
+      JSON.stringify(
+        (form.get("colors") || "")
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean),
+      ),
+    );
+    form.set("featured", form.get("featured") ? "true" : "false");
+    let r = await fetch(`${API}/admin/products`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+    if (r.ok) {
+      e.currentTarget.reset();
+      setNotice(
+        "Produit ajouté avec succès. Actualisez la page boutique pour le voir.",
+      );
+    } else {
+      let d = await r.json().catch(() => ({}));
+      setNotice(d.message || "Impossible d’ajouter le produit.");
+    }
+  }
+  return (
+    <section className="admin-products">
+      <div>
+        <p className="eyebrow">CATÉGORIES & PRODUITS</p>
+        <h2>Ajouter au catalogue</h2>
+      </div>
+      <div className="admin-forms">
+        <form onSubmit={addCategory}>
+          <h3>Nouvelle catégorie</h3>
+          <input name="name" required placeholder="Ex. Décoration" />
+          <button className="primary">Créer</button>
+        </form>
+        <form onSubmit={addProduct} encType="multipart/form-data">
+          <h3>Nouveau produit</h3>
+          <div className="admin-two">
+            <input required name="name" placeholder="Nom du produit" />
+            <select required name="category" defaultValue="">
+              <option value="" disabled>
+                Catégorie
+              </option>
+              {categories.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <textarea name="description" placeholder="Description du produit" />
+          <div className="admin-two">
+            <input
+              required
+              min="0"
+              step="0.001"
+              type="number"
+              name="price"
+              placeholder="Prix (TND)"
+            />
+            <input
+              required
+              min="0"
+              type="number"
+              name="stock"
+              placeholder="Stock"
+            />
+          </div>
+          <input
+            min="0"
+            step="0.001"
+            type="number"
+            name="compareAtPrice"
+            placeholder="Ancien prix / promotion (facultatif)"
+          />
+          <input name="colors" placeholder="Couleurs : beige, blanc, noir" />
+          <label className="file-label">
+            Photos du produit
+            <input
+              required
+              name="images"
+              type="file"
+              accept="image/*"
+              multiple
+            />
+          </label>
+          <label className="check">
+            <input type="checkbox" name="featured" /> Mettre en avant sur
+            l’accueil
+          </label>
+          <button className="primary">Publier le produit</button>
+        </form>
+      </div>
+      {notice && <p className="notice">{notice}</p>}
+    </section>
+  );
+}
+function Admin({ products }) {
+  let [token, setToken] = useState(
+      localStorage.getItem("zendella-admin-token") || "",
+    ),
+    [orders, setOrders] = useState([]),
+    [error, setError] = useState("");
+  useEffect(() => {
+    if (token)
+      fetch(`${API}/admin/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then(setOrders)
+        .catch(() => {
+          setError("Session expirée ou accès administrateur requis");
+          setToken("");
+          localStorage.removeItem("zendella-admin-token");
+        });
+  }, [token]);
+  async function login(e) {
+    e.preventDefault();
+    setError("");
+    try {
+      let d = Object.fromEntries(new FormData(e.currentTarget));
+      let r = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(d),
+      });
+      let data = await r.json().catch(() => ({}));
+      if (!r.ok || data.user?.role !== "admin")
+        return setError(data.message || "Identifiants administrateur invalides");
+      localStorage.setItem("zendella-admin-token", data.token);
+      setToken(data.token);
+    } catch {
+      setError(`Impossible de joindre l’API : ${API}`);
+    }
+  }
+  async function update(id, status) {
+    let r = await fetch(`${API}/admin/orders/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+    if (r.ok)
+      setOrders((a) => a.map((o) => (o._id === id ? { ...o, status } : o)));
+  }
+  if (!token)
+    return (
+      <main className="admin-login">
+        <form onSubmit={login}>
+          <button type="button" className="site-logo">
+            <img src="/zendala-dream-logo.png" alt="Zendala Dream" />
+          </button>
+          <p className="eyebrow">ESPACE SÉCURISÉ</p>
+          <h1>Administration</h1>
+          <label>
+            Email
+            <input required type="email" name="email" />
+          </label>
+          <label>
+            Mot de passe
+            <input required type="password" name="password" />
+          </label>
+          {error && <p className="error">{error}</p>}
+          <button type="submit" className="primary full">
+            Se connecter
+          </button>
+          <small>
+            Utilisez les identifiants ADMIN_EMAIL et ADMIN_PASSWORD définis sur
+            Render.
+          </small>
+        </form>
+      </main>
+    );
+  return (
+    <main className="admin">
+      <div className="admin-top">
+        <div>
+          <button className="site-logo">
+            <img src="/zendala-dream-logo.png" alt="Zendala Dream" />
+          </button>
+          <p>Tableau de bord</p>
+        </div>
+        <button
+          className="line-btn"
+          onClick={() => {
+            localStorage.removeItem("zendella-admin-token");
+            setToken("");
+          }}
+        >
+          Déconnexion
+        </button>
+      </div>
+      <div className="stats">
+        <div>
+          <span>Commandes</span>
+          <b>{orders.length}</b>
+        </div>
+        <div>
+          <span>À approuver</span>
+          <b>{orders.filter((o) => o.status === "pending").length}</b>
+        </div>
+        <div>
+          <span>Produits</span>
+          <b>{products.length}</b>
+        </div>
+        <div>
+          <span>Stock faible</span>
+          <b>{products.filter((p) => p.stock < 6).length}</b>
+        </div>
+      </div>
+      <AdminTools token={token} />
+      <section className="order-table">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">COMMANDES</p>
+            <h2>À traiter</h2>
+          </div>
+        </div>
+        {!orders.length ? (
+          <p className="none">Aucune commande pour le moment.</p>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Référence</th>
+                  <th>Client</th>
+                  <th>Ville</th>
+                  <th>Total</th>
+                  <th>Statut</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => (
+                  <tr key={o._id}>
+                    <td>#{o.orderNumber}</td>
+                    <td>
+                      {o.customer?.firstName} {o.customer?.lastName}
+                      <small>{o.customer?.phone}</small>
+                    </td>
+                    <td>{o.customer?.city}</td>
+                    <td>{money(o.total)}</td>
+                    <td>
+                      <span className={"status " + o.status}>{o.status}</span>
+                    </td>
+                    <td>
+                      <select
+                        value={o.status}
+                        onChange={(e) => update(o._id, e.target.value)}
+                      >
+                        <option value="pending">En attente</option>
+                        <option value="approved">Approuvée</option>
+                        <option value="processing">Préparation</option>
+                        <option value="shipped">Expédiée</option>
+                        <option value="delivered">Livrée</option>
+                        <option value="cancelled">Annulée</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+function Showroom() {
+  return (
+    <main className="showroom">
+      <div>
+        <p className="eyebrow">NOTRE UNIVERS</p>
+        <h1>Le showroom Zendella</h1>
+        <p>
+          Un lieu d'inspiration où les textures, les formes et la lumière
+          dialoguent.
+        </p>
+      </div>
+      <img
+        src="https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=1400&q=85"
+        alt="Showroom Zendella"
+      />
+      <section>
+        <h2>Venez vivre l'expérience.</h2>
+        <p>
+          Notre showroom est actuellement disponible sur rendez-vous à Lagos.
+          Suivez-nous pour découvrir nos pop-ups et nouvelles collections.
+        </p>
+        <button className="line-btn">
+          @zendella.home <Instagram size={18} />
+        </button>
+      </section>
+    </main>
+  );
+}
+function About() {
+  return (
+    <main className="about">
+      <section>
+        <p className="eyebrow">NOTRE HISTOIRE</p>
+        <h1>
+          La beauté
+          <br />
+          du quotidien.
+        </h1>
+        <p>
+          Zendella est née d'une conviction simple : la maison doit être un
+          refuge, un terrain de jeu et un reflet de ceux qui l'habitent.
+        </p>
+      </section>
+      <img
+        src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=85"
+        alt="Intérieur chaleureux"
+      />
+      <section className="values">
+        <div>
+          <span>01</span>
+          <h2>
+            Choisir moins,
+            <br />
+            choisir mieux.
+          </h2>
+        </div>
+        <p>
+          Nous privilégions les pièces intemporelles, fabriquées dans des
+          matières qui traversent les années. Chaque collection est imaginée
+          pour s'accorder, évoluer et raconter votre histoire.
+        </p>
+      </section>
+    </main>
+  );
+}
+function Footer() {
+  return (
+    <footer>
+      <div>
+        <button className="site-logo">
+          <img src="/zendala-dream-logo.png" alt="Zendala Dream" />
+        </button>
+        <p>Des objets qui font du bien à la maison.</p>
+      </div>
+      <div>
+        <b>La maison Zendala</b>
+        <a>La boutique</a>
+        <a>Showroom</a>
+        <a>Notre histoire</a>
+      </div>
+      <div>
+        <b>Suivez-nous</b>
+        <a
+          href="https://www.instagram.com/ste_zendala_dream/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Instagram @ste_zendala_dream
+        </a>
+        <a>Livraison & retours</a>
+        <a>Nous contacter</a>
+      </div>
+      <div>
+        <b>La lettre Zendala</b>
+        <p>Inspirations, nouveautés et offres privées.</p>
+        <div className="newsletter">
+          <input placeholder="Votre e-mail" />
+          <button>
+            <ArrowRight size={18} />
+          </button>
+        </div>
+      </div>
+      <small>© 2026 Zendala Dream. Tous droits réservés.</small>
+    </footer>
+  );
+}
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error)
+      return (
+        <main className="app-error">
+          <p className="eyebrow">ERREUR DE CHARGEMENT</p>
+          <h1>Zendala Dream redémarre.</h1>
+          <p>
+            Actualisez la page. Si le problème persiste, réessayez dans quelques
+            instants.
+          </p>
+          <code>{this.state.error.message}</code>
+          <button className="primary" onClick={() => window.location.reload()}>
+            Actualiser le site
+          </button>
+        </main>
+      );
+    return this.props.children;
+  }
+}
+createRoot(document.getElementById("root")).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>,
+);
