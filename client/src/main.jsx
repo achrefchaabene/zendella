@@ -4,7 +4,6 @@ import {
   ArrowRight,
   ShoppingBag,
   Check,
-  ChevronDown,
   Eye,
   EyeOff,
   Heart,
@@ -62,6 +61,10 @@ function App() {
     ),
     [selected, setSelected] = useState(null),
     [query, setQuery] = useState(""),
+    [categoryFilter, setCategoryFilter] = useState(""),
+    [priceMin, setPriceMin] = useState(""),
+    [priceMax, setPriceMax] = useState(""),
+    [sortBy, setSortBy] = useState("latest"),
     [order, setOrder] = useState(null),
     [menu, setMenu] = useState(false),
     [cartNotice, setCartNotice] = useState("");
@@ -135,11 +138,22 @@ function App() {
     );
   };
   const total = cart.reduce((s, x) => s + x.price * x.qty, 0);
-  const filtered = products.filter((p) =>
-    `${p.name} ${p.category?.name || ""}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
-  );
+  const filtered = useMemo(() => {
+    const matching = products.filter((p) => {
+      const matchesSearch = `${p.name} ${p.category?.name || ""}`
+        .toLowerCase()
+        .includes(query.toLowerCase());
+      const matchesCategory = !categoryFilter || p.category?._id === categoryFilter;
+      const matchesMinimum = !priceMin || p.price >= Number(priceMin);
+      const matchesMaximum = !priceMax || p.price <= Number(priceMax);
+      return matchesSearch && matchesCategory && matchesMinimum && matchesMaximum;
+    });
+    return matching.sort((a, b) => {
+      if (sortBy === "price-asc") return a.price - b.price;
+      if (sortBy === "price-desc") return b.price - a.price;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+  }, [products, query, categoryFilter, priceMin, priceMax, sortBy]);
   const go = (v) => {
     setView(v);
     setSelected(null);
@@ -197,8 +211,17 @@ function App() {
       {view === "shop" && (
         <Shop
           products={filtered}
+          categories={categories}
           query={query}
           setQuery={setQuery}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
+          priceMin={priceMin}
+          setPriceMin={setPriceMin}
+          priceMax={priceMax}
+          setPriceMax={setPriceMax}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
           add={add}
           select={setSelected}
         />
@@ -376,7 +399,30 @@ function Home({ products, categories, add, go, select }) {
     </main>
   );
 }
-function Shop({ products, query, setQuery, add, select }) {
+function Shop({
+  products,
+  categories,
+  query,
+  setQuery,
+  categoryFilter,
+  setCategoryFilter,
+  priceMin,
+  setPriceMin,
+  priceMax,
+  setPriceMax,
+  sortBy,
+  setSortBy,
+  add,
+  select,
+}) {
+  const resetFilters = () => {
+    setQuery("");
+    setCategoryFilter("");
+    setPriceMin("");
+    setPriceMax("");
+    setSortBy("latest");
+  };
+  const filtersActive = query || categoryFilter || priceMin || priceMax || sortBy !== "latest";
   return (
     <main className="shop">
       <div className="page-head">
@@ -384,8 +430,8 @@ function Shop({ products, query, setQuery, add, select }) {
         <h1>Tout pour la maison</h1>
         <p>Une sélection d'objets fonctionnels, beaux et durables.</p>
       </div>
-      <div className="filter">
-        <div>
+      <section className="shop-filters" aria-label="Filtrer les produits">
+        <div className="filter-search">
           <Search size={18} />
           <input
             value={query}
@@ -393,11 +439,38 @@ function Shop({ products, query, setQuery, add, select }) {
             placeholder="Rechercher un produit"
           />
         </div>
-        <button>
-          Filtrer <ChevronDown size={16} />
-        </button>
-      </div>
-      <p className="count">{products.length} produits</p>
+        <div className="filter-controls">
+          <label>
+            Catégorie
+            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+              <option value="">Toutes les catégories</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>{category.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Prix min. (TND)
+            <input type="number" min="0" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="0" />
+          </label>
+          <label>
+            Prix max. (TND)
+            <input type="number" min="0" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Sans limite" />
+          </label>
+          <label>
+            Trier par
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="latest">Plus récents</option>
+              <option value="price-asc">Prix croissant</option>
+              <option value="price-desc">Prix décroissant</option>
+            </select>
+          </label>
+        </div>
+        <div className="filter-bottom">
+          <p className="count"><b>{products.length}</b> produit{products.length !== 1 ? "s" : ""} trouvé{products.length !== 1 ? "s" : ""}</p>
+          {filtersActive && <button className="reset-filters" onClick={resetFilters}>Réinitialiser les filtres</button>}
+        </div>
+      </section>
       {products.length ? (
         <div className="grid">
           {products.map((p) => (
