@@ -218,7 +218,7 @@ function App() {
       {selected && (
         <ProductModal p={selected} close={() => setSelected(null)} add={add} />
       )}{" "}
-      {order && <Success order={order} go={go} />}{" "}
+      {order && <Success order={order} go={go} dismiss={() => setOrder(null)} />}{" "}
       <Cart
         drawer={drawer}
         close={() => setDrawer(false)}
@@ -710,7 +710,7 @@ function Checkout({ cart, total, setOrder, go, clear, confirmStock }) {
     </main>
   );
 }
-function Success({ order, go }) {
+function Success({ order, go, dismiss }) {
   return (
     <div className="overlay">
       <div className="success">
@@ -726,8 +726,14 @@ function Success({ order, go }) {
         <p className="delivery">
           <Truck /> Livraison estimée sous 8 jours ouvrés
         </p>
-        <button className="primary" onClick={() => go("shop")}>
-          Retour à l'accueil
+        <button
+          className="primary"
+          onClick={() => {
+            dismiss();
+            go("shop");
+          }}
+        >
+          Retour à la boutique
         </button>
       </div>
     </div>
